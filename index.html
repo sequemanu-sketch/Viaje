@@ -1,1 +1,519 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ruta al viaje</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
 
+  :root{
+    --bg:#EEF1F3;
+    --surface:#FFFFFF;
+    --ink:#142433;
+    --ink-soft:#4C5B6B;
+    --line:#D6DDE3;
+    --route:#2F6F62;
+    --route-soft:#DCEAE6;
+    --gold:#C98A2E;
+    --neg:#B4483A;
+    --radius:14px;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--ink);
+    font-family:'Inter',sans-serif;
+    -webkit-font-smoothing:antialiased;
+    padding:28px 18px 60px;
+  }
+  .wrap{max-width:760px;margin:0 auto;}
+
+  header{margin-bottom:22px;}
+  .eyebrow{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11px;
+    letter-spacing:.14em;
+    text-transform:uppercase;
+    color:var(--ink-soft);
+    margin-bottom:6px;
+  }
+  h1{
+    font-family:'Space Grotesk',sans-serif;
+    font-weight:700;
+    font-size:30px;
+    margin:0;
+    letter-spacing:-0.01em;
+  }
+  h1 input{
+    font:inherit;
+    color:inherit;
+    background:transparent;
+    border:none;
+    border-bottom:2px dashed transparent;
+    padding:0;
+    width:auto;
+    min-width:60px;
+  }
+  h1 input:hover, h1 input:focus{
+    border-bottom:2px dashed var(--line);
+    outline:none;
+  }
+
+  /* ROUTE / progress signature element */
+  .route-card{
+    background:var(--surface);
+    border-radius:var(--radius);
+    padding:22px 20px 18px;
+    border:1px solid var(--line);
+    margin-bottom:18px;
+  }
+  .route-top{
+    display:flex;
+    justify-content:space-between;
+    align-items:baseline;
+    margin-bottom:18px;
+    flex-wrap:wrap;
+    gap:8px;
+  }
+  .route-figure{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:13px;
+    color:var(--ink-soft);
+  }
+  .route-figure b{
+    font-size:22px;
+    color:var(--ink);
+    font-weight:600;
+  }
+  .route-track{
+    position:relative;
+    height:2px;
+    background:repeating-linear-gradient(90deg,var(--line) 0 6px,transparent 6px 12px);
+    margin:34px 6px 30px;
+  }
+  .route-fill{
+    position:absolute;
+    top:0; left:0; height:2px;
+    background:var(--route);
+    transition:width .5s ease;
+  }
+  .route-start,.route-end{
+    position:absolute;
+    top:-5px;
+    width:12px;height:12px;
+    border-radius:50%;
+  }
+  .route-start{left:-6px;background:var(--ink);}
+  .route-end{right:-6px;background:var(--gold);}
+  .route-plane{
+    position:absolute;
+    top:-11px;
+    transform:translateX(-50%);
+    transition:left .5s ease;
+    font-size:20px;
+    filter:drop-shadow(0 1px 1px rgba(0,0,0,.15));
+  }
+  .route-pct{
+    position:absolute;
+    top:-32px;
+    transform:translateX(-50%);
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11px;
+    color:var(--route);
+    font-weight:600;
+    transition:left .5s ease;
+    white-space:nowrap;
+  }
+  .route-bottom{
+    display:flex;
+    justify-content:space-between;
+    gap:10px;
+    flex-wrap:wrap;
+  }
+  .stat{flex:1;min-width:120px;}
+  .stat .lbl{
+    font-size:11px;
+    text-transform:uppercase;
+    letter-spacing:.08em;
+    color:var(--ink-soft);
+    margin-bottom:3px;
+  }
+  .stat .val{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:17px;
+    font-weight:600;
+  }
+  .stat.remaining .val{color:var(--neg);}
+  .stat.saved .val{color:var(--route);}
+
+  /* Goal config */
+  .goal-row{
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+    align-items:center;
+    font-size:13px;
+    color:var(--ink-soft);
+    margin-top:14px;
+    padding-top:14px;
+    border-top:1px solid var(--line);
+  }
+  .goal-row label{display:flex;align-items:center;gap:6px;}
+  .goal-row input, .goal-row select{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:13px;
+    border:1px solid var(--line);
+    border-radius:8px;
+    padding:5px 8px;
+    background:var(--bg);
+    color:var(--ink);
+    width:100px;
+  }
+  .goal-row select{width:auto;}
+
+  /* form */
+  .card{
+    background:var(--surface);
+    border-radius:var(--radius);
+    border:1px solid var(--line);
+    padding:18px 20px;
+    margin-bottom:18px;
+  }
+  .card h2{
+    font-family:'Space Grotesk',sans-serif;
+    font-size:15px;
+    margin:0 0 14px;
+    font-weight:600;
+  }
+  .form-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:10px;
+  }
+  .form-grid .full{grid-column:1/-1;}
+  .field{display:flex;flex-direction:column;gap:5px;}
+  .field label{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-soft);}
+  .field input, .field select{
+    font-family:'Inter',sans-serif;
+    font-size:14px;
+    padding:9px 10px;
+    border-radius:8px;
+    border:1px solid var(--line);
+    background:var(--bg);
+    color:var(--ink);
+  }
+  .amount-row{display:flex;gap:8px;}
+  .amount-row input{flex:1;}
+  .amount-row select{width:90px;}
+  button.add-btn{
+    margin-top:14px;
+    width:100%;
+    background:var(--ink);
+    color:#fff;
+    border:none;
+    border-radius:8px;
+    padding:11px;
+    font-family:'Space Grotesk',sans-serif;
+    font-weight:600;
+    font-size:14px;
+    cursor:pointer;
+    transition:opacity .15s;
+  }
+  button.add-btn:hover{opacity:.85;}
+  button.add-btn:disabled{opacity:.4;cursor:not-allowed;}
+
+  /* ledger */
+  .ledger-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;}
+  .entry{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    padding:11px 0;
+    border-bottom:1px solid var(--line);
+  }
+  .entry:last-child{border-bottom:none;}
+  .entry .dot{
+    width:7px;height:7px;border-radius:50%;
+    background:var(--route);
+    flex-shrink:0;
+  }
+  .entry .info{flex:1;min-width:0;}
+  .entry .source{font-size:14px;font-weight:500;}
+  .entry .date{font-size:11px;color:var(--ink-soft);font-family:'IBM Plex Mono',monospace;}
+  .entry .amt{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:14px;
+    font-weight:600;
+    white-space:nowrap;
+  }
+  .entry .del{
+    background:none;border:none;color:var(--ink-soft);
+    cursor:pointer;font-size:16px;padding:2px 6px;
+    border-radius:6px;
+  }
+  .entry .del:hover{background:var(--bg);color:var(--neg);}
+  .empty{
+    text-align:center;
+    color:var(--ink-soft);
+    font-size:13px;
+    padding:20px 0;
+  }
+  .rate-note{
+    font-size:11px;
+    color:var(--ink-soft);
+    margin-top:8px;
+    font-family:'IBM Plex Mono',monospace;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="eyebrow">RUTA DE AHORRO</div>
+    <h1>Viaje a <input id="tripName" value="destino" /></h1>
+  </header>
+
+  <div class="route-card">
+    <div class="route-top">
+      <div class="route-figure">Meta: <b id="goalDisplay">—</b></div>
+      <div class="route-figure" id="pctDisplay">0%</div>
+    </div>
+
+    <div class="route-track">
+      <div class="route-fill" id="routeFill"></div>
+      <div class="route-start"></div>
+      <div class="route-end"></div>
+      <div class="route-pct" id="routePct" style="left:0%">0%</div>
+      <div class="route-plane" id="routePlane" style="left:0%">✈️</div>
+    </div>
+
+    <div class="route-bottom">
+      <div class="stat saved">
+        <div class="lbl">Ahorrado</div>
+        <div class="val" id="savedVal">—</div>
+      </div>
+      <div class="stat remaining">
+        <div class="lbl">Falta</div>
+        <div class="val" id="remainingVal">—</div>
+      </div>
+    </div>
+
+    <div class="goal-row">
+      <label>Meta
+        <input id="goalAmount" type="number" min="0" step="1" placeholder="0">
+        <select id="goalCurrency">
+          <option value="ARS">ARS</option>
+          <option value="USD">USD</option>
+        </select>
+      </label>
+      <label>Cotización USD
+        <input id="exchangeRate" type="number" min="0" step="1" placeholder="0">
+      </label>
+    </div>
+    <div class="rate-note">La cotización se usa para convertir entre ARS y USD en todos los cálculos.</div>
+  </div>
+
+  <div class="card">
+    <h2>Cargar ahorro</h2>
+    <div class="form-grid">
+      <div class="field full">
+        <label>Monto</label>
+        <div class="amount-row">
+          <input id="entryAmount" type="number" min="0" step="1" placeholder="0">
+          <select id="entryCurrency">
+            <option value="ARS">ARS</option>
+            <option value="USD">USD</option>
+          </select>
+        </div>
+      </div>
+      <div class="field full">
+        <label>De dónde salió</label>
+        <input id="entrySource" type="text" placeholder="Ej: changa, sueldo, venta...">
+      </div>
+      <div class="field">
+        <label>Fecha</label>
+        <input id="entryDate" type="date">
+      </div>
+      <div class="field">
+        <label>Nota (opcional)</label>
+        <input id="entryNote" type="text" placeholder="—">
+      </div>
+    </div>
+    <button class="add-btn" id="addBtn">Agregar al ahorro</button>
+  </div>
+
+  <div class="card">
+    <div class="ledger-head">
+      <h2 style="margin:0;">Movimientos</h2>
+      <span class="route-figure" id="countDisplay"></span>
+    </div>
+    <div id="ledger"></div>
+  </div>
+
+</div>
+
+<script>
+const SETTINGS_KEY = 'viaje-settings';
+const ENTRIES_KEY = 'viaje-entries';
+
+let settings = { tripName:'destino', goalAmount:0, goalCurrency:'ARS', exchangeRate:1450 };
+let entries = [];
+
+const $ = id => document.getElementById(id);
+const fmt = (n, cur) => {
+  const abs = Math.abs(n);
+  const num = abs.toLocaleString('es-AR', {minimumFractionDigits:0, maximumFractionDigits:0});
+  return (cur === 'USD' ? 'U$D ' : '$ ') + num;
+};
+
+function toGoalCurrency(amount, fromCur){
+  const rate = Number(settings.exchangeRate) || 0;
+  if(fromCur === settings.goalCurrency) return amount;
+  if(fromCur === 'ARS' && settings.goalCurrency === 'USD') return rate > 0 ? amount / rate : 0;
+  if(fromCur === 'USD' && settings.goalCurrency === 'ARS') return amount * rate;
+  return amount;
+}
+
+async function loadData(){
+  try{
+    const s = localStorage.getItem(SETTINGS_KEY);
+    if(s) settings = {...settings, ...JSON.parse(s)};
+  }catch(e){ /* no settings yet */ }
+  try{
+    const e = localStorage.getItem(ENTRIES_KEY);
+    if(e) entries = JSON.parse(e);
+  }catch(e){ /* no entries yet */ }
+  hydrateForm();
+  render();
+}
+
+async function saveSettings(){
+  try{ localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); }
+  catch(e){ console.error('No se pudo guardar la configuración', e); }
+}
+async function saveEntries(){
+  try{ localStorage.setItem(ENTRIES_KEY, JSON.stringify(entries)); }
+  catch(e){ console.error('No se pudieron guardar los movimientos', e); }
+}
+
+function hydrateForm(){
+  $('tripName').value = settings.tripName;
+  $('goalAmount').value = settings.goalAmount || '';
+  $('goalCurrency').value = settings.goalCurrency;
+  $('exchangeRate').value = settings.exchangeRate || '';
+  $('entryDate').value = new Date().toISOString().slice(0,10);
+}
+
+function render(){
+  const goal = Number(settings.goalAmount) || 0;
+  const savedInGoalCur = entries.reduce((sum, e) => sum + toGoalCurrency(Number(e.amount), e.currency), 0);
+  const remaining = Math.max(goal - savedInGoalCur, 0);
+  const pct = goal > 0 ? Math.min((savedInGoalCur / goal) * 100, 100) : 0;
+
+  $('goalDisplay').textContent = goal > 0 ? fmt(goal, settings.goalCurrency) : 'sin definir';
+  $('pctDisplay').textContent = pct.toFixed(0) + '%';
+  $('savedVal').textContent = fmt(savedInGoalCur, settings.goalCurrency);
+  $('remainingVal').textContent = goal > 0 ? fmt(remaining, settings.goalCurrency) : '—';
+
+  $('routeFill').style.width = pct + '%';
+  $('routePlane').style.left = pct + '%';
+  $('routePct').style.left = pct + '%';
+  $('routePct').textContent = pct.toFixed(0) + '%';
+
+  // secondary currency conversion note
+  const otherCur = settings.goalCurrency === 'ARS' ? 'USD' : 'ARS';
+  const savedOther = toGoalCurrency(savedInGoalCur, settings.goalCurrency) === savedInGoalCur
+      ? (settings.goalCurrency === 'ARS' ? savedInGoalCur / (Number(settings.exchangeRate)||1) : savedInGoalCur * (Number(settings.exchangeRate)||0))
+      : 0;
+
+  renderLedger();
+}
+
+function renderLedger(){
+  const ledger = $('ledger');
+  $('countDisplay').textContent = entries.length ? `${entries.length} movimiento${entries.length===1?'':'s'}` : '';
+  if(entries.length === 0){
+    ledger.innerHTML = '<div class="empty">Todavía no cargaste ningún ahorro.</div>';
+    return;
+  }
+  const sorted = [...entries].sort((a,b) => (b.date||'').localeCompare(a.date||'') || b.id - a.id);
+  ledger.innerHTML = sorted.map(e => `
+    <div class="entry" data-id="${e.id}">
+      <div class="dot"></div>
+      <div class="info">
+        <div class="source">${escapeHtml(e.source || 'Sin especificar')}</div>
+        <div class="date">${formatDate(e.date)}${e.note ? ' · ' + escapeHtml(e.note) : ''}</div>
+      </div>
+      <div class="amt">${fmt(Number(e.amount), e.currency)}</div>
+      <button class="del" data-id="${e.id}" title="Eliminar">✕</button>
+    </div>
+  `).join('');
+
+  ledger.querySelectorAll('.del').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const id = Number(btn.dataset.id);
+      entries = entries.filter(e => e.id !== id);
+      await saveEntries();
+      render();
+    });
+  });
+}
+
+function formatDate(d){
+  if(!d) return '';
+  const [y,m,day] = d.split('-');
+  return `${day}/${m}/${y}`;
+}
+function escapeHtml(str){
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+// settings listeners
+['tripName'].forEach(id => {
+  $(id).addEventListener('change', async () => {
+    settings.tripName = $('tripName').value || 'destino';
+    await saveSettings();
+  });
+});
+['goalAmount','goalCurrency','exchangeRate'].forEach(id => {
+  $(id).addEventListener('change', async () => {
+    settings.goalAmount = $('goalAmount').value;
+    settings.goalCurrency = $('goalCurrency').value;
+    settings.exchangeRate = $('exchangeRate').value;
+    await saveSettings();
+    render();
+  });
+});
+
+$('addBtn').addEventListener('click', async () => {
+  const amount = Number($('entryAmount').value);
+  const currency = $('entryCurrency').value;
+  const source = $('entrySource').value.trim();
+  const date = $('entryDate').value || new Date().toISOString().slice(0,10);
+  const note = $('entryNote').value.trim();
+
+  if(!amount || amount <= 0){
+    $('entryAmount').focus();
+    return;
+  }
+
+  entries.push({ id: Date.now(), amount, currency, source, date, note });
+  await saveEntries();
+
+  $('entryAmount').value = '';
+  $('entrySource').value = '';
+  $('entryNote').value = '';
+  $('entryAmount').focus();
+
+  render();
+});
+
+loadData();
+</script>
+</body>
+</html>
